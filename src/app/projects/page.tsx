@@ -1,5 +1,9 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { ProjectTables } from '@/components/ProjectTables';
+import { Card } from "@/components/ui/card";
+import { Database, Lock, Zap } from "lucide-react";
+import ProjectList from '@/components/ProjectList';
 
 async function getProjects() {
   const cookieStore = cookies();
@@ -46,27 +50,22 @@ export default async function ProjectsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-4">Your Supabase Projects</h1>
+    <div className="w-full flex flex-col items-center dark bg-[url('/bg.png')] bg-cover bg-center min-h-screen">
+      <section className="mt-24 flex-grow py-8 md:py-12 lg:py-16 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
+          <div className="flex flex-col items-center space-y-8 text-center">
+            <div className="space-y-4">
+              <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl bg-gradient-to-b from-white to-gray-400 text-transparent bg-clip-text">
+                Your Supabase Projects
+              </h1>
+            </div>
+          </div>
+        </div>
+      </section>
       {projects.length === 0 ? (
-        <p>No projects found. Create a new project in your Supabase dashboard to get started.</p>
+        <p className="text-white">No projects found. Create a new project in your Supabase dashboard to get started.</p>
       ) : (
-        <ul className="space-y-4">
-          {projects.map((project) => (
-            <li key={project.id} className="bg-white shadow rounded-lg p-4">
-              <h2 className="text-xl font-semibold">{project.name}</h2>
-              <p className="text-gray-600">ID: {project.id}</p>
-              <p className="text-gray-600">Region: {project.region}</p>
-              <p className="text-gray-600">Created at: {new Date(project.created_at).toLocaleString()}</p>
-              {project.database && (
-                <div className="mt-2">
-                  <p className="text-gray-600">Database: {project.database.host}</p>
-                  <p className="text-gray-600">Version: {project.database.version}</p>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <ProjectList projects={projects} />
       )}
     </div>
   );

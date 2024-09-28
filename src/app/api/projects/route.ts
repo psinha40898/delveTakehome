@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const client = new SupabaseManagementAPI({ accessToken });
-    const projects = await client.getProjects();
+    const projects = await client.getProjects()
+
     return NextResponse.json({ projects });
   } catch (error) {
     console.error('Error fetching projects:', error);
