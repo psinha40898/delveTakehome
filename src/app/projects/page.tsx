@@ -55,18 +55,21 @@ export default async function ProjectsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
           <div className="flex flex-col items-center space-y-8 text-center">
             <div className="space-y-4">
-              <h1 className="text-5xl font-bold tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl bg-gradient-to-b from-white to-gray-400 text-transparent bg-clip-text">
+              <h1 className="text-5xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-6xl bg-gradient-to-b from-white to-gray-400 text-transparent bg-clip-text">
                 Your Supabase Projects
               </h1>
             </div>
           </div>
         </div>
-      </section>
-      {projects.length === 0 ? (
+<div className='mt-8'>
+{projects.length === 0 ? (
         <p className="text-white">No projects found. Create a new project in your Supabase dashboard to get started.</p>
       ) : (
         <ProjectList projects={projects} />
       )}
+</div>
+      </section>
+
     </div>
   );
 }

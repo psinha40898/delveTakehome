@@ -2,16 +2,19 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { fetchProjectTables, enableRLS, grantReadPermission, grantReadWritePermission, storeLogs, fetchLogs } from '@/app/actions'
+import { fetchMFAStatus, storeLogs, fetchLogs } from '@/app/actions'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle, Download } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 
-interface TableResult {
-  table_name: string;
-  rls_enabled: boolean;
+interface MFAStatus {
+  session_id: string;
+  user_id: string;
+  aal: string;
+  user_email: string;
+  user_phone: string | null;
 }
 
 interface LogEntry {
@@ -21,15 +24,15 @@ interface LogEntry {
   type: 'RLS' | 'MFA' | 'PITR';
 }
 
-export function ProjectTables({ projectRef, userId = 'default-user' }: { projectRef: string; userId?: string }) {
-  const [queryResult, setQueryResult] = useState<TableResult[] | null>(null)
+export function MFACheck({ projectRef, userId = 'default-user' }: { projectRef: string; userId?: string }) {
+  const [queryResult, setQueryResult] = useState<MFAStatus[] | null>(null)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     fetchLogs(projectRef, userId).then(logs => {
-      setLogs(logs.filter(log => log.type === 'RLS'))
+      setLogs(logs.filter(log => log.type === 'MFA'))
     }).catch(console.error)
   }, [projectRef, userId])
 
@@ -38,67 +41,26 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
       timestamp: new Date().toISOString(),
       action,
       result,
-      type: 'RLS',
+      type: 'MFA',
     }
     setLogs(prevLogs => [...prevLogs, newLog])
     await storeLogs(projectRef, [newLog], userId)
   }
 
-  const handleCheckRLS = () => {
+  const handleCheckMFA = () => {
     setError(null)
     startTransition(async () => {
       try {
-        const result = await fetchProjectTables(projectRef)
+        const result = await fetchMFAStatus(projectRef)
+        console.log('MFA status result:', result)
         setQueryResult(result)
-        result.forEach(table => {
-          const status = table.rls_enabled ? "RLS was already enabled" : "RLS was found to be disabled"
-          addLog('RLS Check', { table: table.table_name, status })
+        result.forEach(user => {
+          const status = user.aal === 'aal2' ? "MFA is enabled" : "MFA is not enabled"
+          addLog('MFA Check', { user: user.user_email, status })
         })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred')
-        addLog('RLS Check Error', { error: err instanceof Error ? err.message : 'An unknown error occurred' })
-      }
-    })
-  }
-
-  const handleEnableRLS = (tableName: string) => {
-    setError(null)
-    startTransition(async () => {
-      try {
-        const result = await enableRLS(projectRef, tableName)
-        addLog('Enable RLS', { table: tableName, ...result })
-        handleCheckRLS() // Refresh the table list
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred')
-        addLog('Enable RLS Error', { table: tableName, error: err instanceof Error ? err.message : 'An unknown error occurred' })
-      }
-    })
-  }
-
-  const handleGrantReadPermission = (tableName: string) => {
-    setError(null)
-    startTransition(async () => {
-      try {
-        const result = await grantReadPermission(projectRef, tableName)
-        addLog('Grant Read Permission', { table: tableName, ...result })
-        handleCheckRLS() // Refresh the table list
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred')
-        addLog('Grant Read Permission Error', { table: tableName, error: err instanceof Error ? err.message : 'An unknown error occurred' })
-      }
-    })
-  }
-
-  const handleGrantReadWritePermission = (tableName: string) => {
-    setError(null)
-    startTransition(async () => {
-      try {
-        const result = await grantReadWritePermission(projectRef, tableName)
-        addLog('Grant Read/Write Permission', { table: tableName, ...result })
-        handleCheckRLS() // Refresh the table list
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred')
-        addLog('Grant Read/Write Permission Error', { table: tableName, error: err instanceof Error ? err.message : 'An unknown error occurred' })
+        addLog('MFA Check Error', { error: err instanceof Error ? err.message : 'An unknown error occurred' })
       }
     })
   }
@@ -112,7 +74,7 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `rls_check_${projectRef}_logs.txt`
+    a.download = `mfa_check_${projectRef}_logs.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -122,11 +84,11 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
   return (
     <div className="w-full">
       <Button 
-        onClick={handleCheckRLS} 
+        onClick={handleCheckMFA} 
         disabled={isPending}
         className="w-full bg-accent hover:bg-accent/80 text-white"
       >
-        {isPending ? 'Checking...' : 'Check RLS Status'}
+        {isPending ? 'Checking...' : 'Check MFA Status'}
       </Button>
       <AnimatePresence>
         {error && (
@@ -151,40 +113,26 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
             transition={{ duration: 0.3 }}
             className="mt-4"
           >
-            {queryResult.some(table => !table.rls_enabled) ? (
+            {queryResult.some(user => user.aal !== 'aal2') ? (
               <Alert className="font-bold bg-red-500/10" variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle className='font-bold mb-2'>The following tables do not have RLS enabled:
+                <AlertTitle className='font-bold mb-2'>The following users do not have MFA enabled:
                 </AlertTitle>
                 <AlertDescription>
-                  <ScrollArea className="w-full h-80 p-2">
+                  <ScrollArea className="w-full  h-80 p-2">
                     <ul className="space-y-4 pr-4">
-                      {queryResult.filter(table => !table.rls_enabled).map((table) => (
-                        <li key={table.table_name} className="text-sm">
+                      {queryResult.filter(user => user.aal !== 'aal2').map((user) => (
+                        <li key={user.session_id} className="text-sm">
                           <div className="flex flex-col space-y-1">
-                            <span className="font-semibold">Table Name: {table.table_name}</span>
-                            <span>RLS Status: Disabled</span>
-                            <span>Potential Fixes:</span>
-                            <Button
-                              onClick={() => handleEnableRLS(table.table_name)}
-                              className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md text-xs w-full"
-                            >
-                              Enable RLS
-                            </Button>
-                            <Button
-                              onClick={() => handleGrantReadPermission(table.table_name)}
-                              className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md text-xs w-full"
-                            >
-                              Grant Read
-                            </Button>
-                            <Button
-                              onClick={() => handleGrantReadWritePermission(table.table_name)}
-                              className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md text-xs w-full"
-                            >
-                              Grant Read/Write
-                            </Button>
+                            <span className="font-semibold">User ID: {user.user_id}</span>
+                            <span>Email: {user.user_email}</span>
+                            <span>Phone: {user.user_phone || 'Not provided'}</span>
+                            <span>Current AAL: {user.aal}</span>
                           </div>
+
                         </li>
+                    
+                        
                       ))}
                     </ul>
                     <ScrollBar orientation="vertical" />
@@ -194,9 +142,9 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
             ) : (
               <Alert variant="default" className="bg-green-500/10 text-green-500 border-green-500">
                 <CheckCircle className="h-4 w-4" />
-                <AlertTitle>RLS Enabled for All Tables</AlertTitle>
+                <AlertTitle>MFA Enabled for All Users</AlertTitle>
                 <AlertDescription>
-                  All tables have Row Level Security (RLS) enabled. Great job!
+                  All users have MFA (Multi-Factor Authentication) enabled. Great job!
                 </AlertDescription>
               </Alert>
             )}
@@ -212,7 +160,7 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
           >
             <Card className="w-full bg-blue-950 text-blue-100">
               <CardHeader>
-                <CardTitle className="text-xl font-bold">RLS Check Logs</CardTitle>
+                <CardTitle className="text-xl font-bold">MFA Check Logs</CardTitle>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[300px] w-full rounded-md border border-blue-800 p-4">
