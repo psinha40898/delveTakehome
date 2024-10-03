@@ -42,3 +42,7 @@ npm run start
 Alternatively, there is a live deployment at
 
 https://delve-takehome.vercel.app/
+
+## Notes
+- I used server actions because it's fun to use new features. I would concede that regular API routes would be better suited for this.
+- I ignored some ES lint rules, only because it's a takehome.
