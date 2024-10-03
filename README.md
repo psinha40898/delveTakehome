@@ -21,19 +21,23 @@ To run this project locally, follow these steps:
 1. Clone the repository to your local machine.
 
 2. Create a `.env` file in the root directory with the following content:
-
+```bash
 SUPABASE_CLIENT_ID=Your_Supabase_Oauth_Client_ID_goes_here_without_brackets
 SUPABASE_CLIENT_SECRET=Your_Supabase_Oauth_Client_Secret_goes_here_without_brackets
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 PERPLEXITY_API_KEY=Your_perplexity_API_key_goes_here_without_brackets
+```
 
 3. Navigate to the root directory of the project in your terminal.
 
-4. Install the dependencies and run locally:
+4. To install the dependencies and run the project locally, use the following commands:
 
+```bash
 npm install
 npm run build
 npm run start
+```
+
 
 Alternatively, there is a live deployment at
 
