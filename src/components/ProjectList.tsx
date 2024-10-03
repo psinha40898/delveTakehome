@@ -7,6 +7,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Button } from "@/components/ui/button"
 import { MFACheck } from '@/components/MFAcheck'
 import { PITRCheck } from "@/components/PITRcheck"
+import { config } from '@/app/lib/supabaseOAuth';
 
 type Project = {
   id: string;
@@ -18,6 +19,8 @@ type Project = {
     version: string;
   };
 };
+
+console.log(config.clientId);
 
 export default function ProjectList({ projects }: { projects: Project[] }) {
   return (
@@ -83,6 +86,8 @@ export default function ProjectList({ projects }: { projects: Project[] }) {
             </Card>
           </div>
         </li>
+
+        
       ))}
     </ul>
   );

@@ -4,7 +4,7 @@ import { ProjectTables } from '@/components/ProjectTables';
 import { Card } from "@/components/ui/card";
 import { Database, Lock, Zap } from "lucide-react";
 import ProjectList from '@/components/ProjectList';
-
+import { redirect } from 'next/navigation'
 async function getProjects() {
   const cookieStore = cookies();
   const accessToken = cookieStore.get('supabaseAccessToken')?.value;
@@ -20,7 +20,7 @@ async function getProjects() {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to fetch projects');
+    throw new Error('Token expired. Refresh the page.');
   }
 
   const data = await response.json();
@@ -38,24 +38,25 @@ export default async function ProjectsPage() {
   }
 
   if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Error</h1>
-        <p className="text-red-500">{error}</p>
-        <Link href="/" className="mt-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Go back to home
-        </Link>
-      </div>
-    );
+    redirect('/');
+    // return (
+    //   <div className="container mx-auto px-4 py-8">
+    //     <h1 className="text-2xl font-bold mb-4">Error</h1>
+    //     <p className="text-red-500">{error}</p>
+    //     <Link href="/" className="mt-4 inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+    //       Go back to home
+    //     </Link>
+    //   </div>
+    // );
   }
 
   return (
-    <div className="w-full flex flex-col items-center dark bg-[url('/bg.png')] bg-cover bg-center min-h-screen">
+    <div className="w-full flex flex-col items-center dark  min-h-screen">
       <section className="mt-24 flex-grow py-8 md:py-12 lg:py-16 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
           <div className="flex flex-col items-center space-y-8 text-center">
             <div className="space-y-4">
-              <h1 className="text-5xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-6xl bg-gradient-to-b from-white to-gray-400 text-transparent bg-clip-text">
+              <h1 className="text-5xl font-bold tracking-tighter sm:text-5xl md:text-5xl lg:text-6xl bg-gradient-to-b from-white to-gray-400 text-transparent bg-clip-text">
                 Your Supabase Projects
               </h1>
             </div>

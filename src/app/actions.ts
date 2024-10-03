@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { SupabaseManagementAPI } from 'supabase-management-js'
 import fs from 'fs/promises'
 import path from 'path'
+import { config } from './lib/supabaseOAuth'
+
 
 interface LogEntry {
   timestamp: string;
@@ -17,8 +19,7 @@ interface UserLogs {
   logs: LogEntry[];
 }
 
-
-export async function storeLogs(projectRef: string, logs: LogEntry[], userId: string = 'default-user') {
+export async function storeLogs(projectRef: string, logs: LogEntry[]) {
   try {
     const logDir = path.join(process.cwd(), 'logs')
     await fs.mkdir(logDir, { recursive: true })
@@ -35,9 +36,9 @@ export async function storeLogs(projectRef: string, logs: LogEntry[], userId: st
     }
 
     // Find or create user logs
-    let userLogs = existingLogs.find(ul => ul.userId === userId)
+    let userLogs = existingLogs.find(ul => ul.userId === config.clientId)
     if (!userLogs) {
-      userLogs = { userId, logs: [] }
+      userLogs = { userId: config.clientId, logs: [] }
       existingLogs.push(userLogs)
     }
 
@@ -54,12 +55,12 @@ export async function storeLogs(projectRef: string, logs: LogEntry[], userId: st
   }
 }
 
-export async function fetchLogs(projectRef: string, userId: string = 'default-user') {
+export async function fetchLogs(projectRef: string) {
   try {
     const logPath = path.join(process.cwd(), 'logs', `${projectRef}_logs.json`)
     const logContent = await fs.readFile(logPath, 'utf-8')
     const allLogs: UserLogs[] = JSON.parse(logContent)
-    const userLogs = allLogs.find(ul => ul.userId === userId)
+    const userLogs = allLogs.find(ul => ul.userId === config.clientId)
     return userLogs ? userLogs.logs : []
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -102,8 +103,8 @@ export async function fetchProjectTables(projectRef: string) {
 
     console.log('Query result:', JSON.stringify(result, null, 2))
 
-    if (result.error) {
-      throw new Error(result.error.message || 'An error occurred while running the query')
+    if (result?.error) {
+      throw new Error(result.error || 'An error occurred while running the query')
     }
 
     return result
@@ -145,8 +146,8 @@ export async function fetchMFAStatus(projectRef: string) {
 
     console.log('MFA status query result:', JSON.stringify(result, null, 2))
 
-    if (result.error) {
-      throw new Error(result.error.message || 'An error occurred while checking MFA status')
+    if (result?.error) {
+      throw new Error(result.error || 'An error occurred while checking MFA status')
     }
 
     return result
@@ -177,8 +178,8 @@ export async function enableRLS(projectRef: string, tableName: string) {
 
     console.log('Enable RLS result:', JSON.stringify(result, null, 2))
 
-    if (result.error) {
-      throw new Error(result.error.message || 'An error occurred while enabling RLS')
+    if (result?.error) {
+      throw new Error(result.error || 'An error occurred while enabling RLS')
     }
 
     return { success: true, message: `RLS enabled for table ${tableName}` }
@@ -216,8 +217,8 @@ export async function grantReadPermission(projectRef: string, tableName: string)
 
     console.log('Grant read permission result:', JSON.stringify(result, null, 2))
 
-    if (result.error) {
-      throw new Error(result.error.message || 'An error occurred while granting read permission')
+    if (result?.error) {
+      throw new Error(result.error || 'An error occurred while granting read permission')
     }
 
     return { success: true, message: `RLS enabled and read permission granted for authenticated users on table ${tableName}` }
@@ -254,8 +255,8 @@ export async function grantReadWritePermission(projectRef: string, tableName: st
 
     console.log('Grant read/write permission result:', JSON.stringify(result, null, 2))
 
-    if (result.error) {
-      throw new Error(result.error.message || 'An error occurred while granting read/write permission')
+    if (result?.error) {
+      throw new Error(result.error || 'An error occurred while granting read/write permission')
     }
 
     return { success: true, message: `RLS enabled and read/write permission granted for authenticated users on table ${tableName}` }
@@ -300,5 +301,54 @@ export async function fetchPITRStatus(projectRef: string) {
   } catch (error) {
     console.error('Error fetching PITR status:', error)
     throw new Error('Failed to fetch PITR status')
+  }
+}
+
+export async function getPerplexityResponse(question: string) {
+  const apiKey = process.env.PERPLEXITY_API_KEY
+  if (!apiKey) {
+    throw new Error('Perplexity API key is not set')
+  }
+
+  const options = {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-sonar-small-128k-online",
+      messages: [
+        { role: "system", content: "You are a helpful assistant that provides information about Supabase MFA implementation." },
+        { role: "user", content: question }
+      ],
+      temperature: 0.2,
+      top_p: 0.9,
+      return_citations: true,
+      search_domain_filter: ["perplexity.ai"],
+      return_images: false,
+      return_related_questions: false,
+      search_recency_filter: "month",
+      top_k: 0,
+      stream: false,
+      presence_penalty: 0,
+      frequency_penalty: 1
+    })
+  };
+
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', options)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Perplexity API Error:', response.status, errorText)
+      throw new Error(`Failed to get response from Perplexity API: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data.choices[0].message.content
+  } catch (error) {
+    console.error('Error in getPerplexityResponse:', error)
+    throw new Error('Failed to get response from Perplexity API: ' + (error instanceof Error ? error.message : String(error)))
   }
 }

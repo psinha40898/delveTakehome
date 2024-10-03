@@ -8,6 +8,8 @@ import { AlertCircle, CheckCircle, Download } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { AIChatButton } from './mfa-ai-help'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 
 interface TableResult {
   table_name: string;
@@ -21,17 +23,19 @@ interface LogEntry {
   type: 'RLS' | 'MFA' | 'PITR';
 }
 
-export function ProjectTables({ projectRef, userId = 'default-user' }: { projectRef: string; userId?: string }) {
+type FetchProjectTablesResult = TableResult[] | { [key: string]: never } | undefined;
+
+export function ProjectTables({ projectRef }: { projectRef: string }) {
   const [queryResult, setQueryResult] = useState<TableResult[] | null>(null)
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
-    fetchLogs(projectRef, userId).then(logs => {
+    fetchLogs(projectRef).then(logs => {
       setLogs(logs.filter(log => log.type === 'RLS'))
     }).catch(console.error)
-  }, [projectRef, userId])
+  }, [projectRef])
 
   const addLog = async (action: string, result: any) => {
     const newLog: LogEntry = {
@@ -41,19 +45,24 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
       type: 'RLS',
     }
     setLogs(prevLogs => [...prevLogs, newLog])
-    await storeLogs(projectRef, [newLog], userId)
+    await storeLogs(projectRef, [newLog])
   }
 
   const handleCheckRLS = () => {
     setError(null)
     startTransition(async () => {
       try {
-        const result = await fetchProjectTables(projectRef)
-        setQueryResult(result)
-        result.forEach(table => {
-          const status = table.rls_enabled ? "RLS was already enabled" : "RLS was found to be disabled"
-          addLog('RLS Check', { table: table.table_name, status })
-        })
+        const result = await fetchProjectTables(projectRef) as FetchProjectTablesResult
+        if (Array.isArray(result)) {
+          setQueryResult(result)
+          result.forEach(table => {
+            const status = table.rls_enabled ? "RLS was already enabled" : "RLS was found to be disabled"
+            addLog('RLS Check', { table: table.table_name, status })
+          })
+        } else {
+          setQueryResult(null)
+          addLog('RLS Check', { error: 'Unexpected result format' })
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred')
         addLog('RLS Check Error', { error: err instanceof Error ? err.message : 'An unknown error occurred' })
@@ -128,6 +137,9 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
       >
         {isPending ? 'Checking...' : 'Check RLS Status'}
       </Button>
+      <div className="mt-4">
+          <AIChatButton query='What is RLS and How do I enable it in my Supabase Application?' title='RLS Help' />
+        </div>
       <AnimatePresence>
         {error && (
           <motion.div
@@ -157,38 +169,61 @@ export function ProjectTables({ projectRef, userId = 'default-user' }: { project
                 <AlertTitle className='font-bold mb-2'>The following tables do not have RLS enabled:
                 </AlertTitle>
                 <AlertDescription>
-                  <ScrollArea className="w-full h-80 p-2">
-                    <ul className="space-y-4 pr-4">
-                      {queryResult.filter(table => !table.rls_enabled).map((table) => (
-                        <li key={table.table_name} className="text-sm">
-                          <div className="flex flex-col space-y-1">
-                            <span className="font-semibold">Table Name: {table.table_name}</span>
-                            <span>RLS Status: Disabled</span>
-                            <span>Potential Fixes:</span>
-                            <Button
-                              onClick={() => handleEnableRLS(table.table_name)}
-                              className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md text-xs w-full"
-                            >
-                              Enable RLS
-                            </Button>
-                            <Button
-                              onClick={() => handleGrantReadPermission(table.table_name)}
-                              className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md text-xs w-full"
-                            >
-                              Grant Read
-                            </Button>
-                            <Button
-                              onClick={() => handleGrantReadWritePermission(table.table_name)}
-                              className="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-md text-xs w-full"
-                            >
-                              Grant Read/Write
-                            </Button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                    <ScrollBar orientation="vertical" />
-                  </ScrollArea>
+                <ScrollArea className="w-full h-80">
+      <div className="min-w-full p-2">
+        <ul className="space-y-4 pr-4">
+          {queryResult.filter(table => !table.rls_enabled).map((table) => (
+            <li key={table.table_name} className="text-sm">
+              <div className="flex flex-col space-y-1">
+                <span className="font-semibold">Table Name: {table.table_name}</span>
+                <span>RLS Status: Disabled</span>
+                <HoverCard closeDelay={100} openDelay={200}>
+                  <HoverCardTrigger asChild>
+                    <Button
+                      onClick={() => handleEnableRLS(table.table_name)}
+                      className="bg-accent hover:bg-accent/80 text-white font-semibold rounded-md text-xs w-full"
+                    >
+                      Enable RLS
+                    </Button>
+                  </HoverCardTrigger>
+                  <HoverCardContent side="top"  className="w-80">
+                                        <p>Only enables RLS</p>
+                  </HoverCardContent>
+                </HoverCard>
+                <HoverCard closeDelay={100} openDelay={200}>
+                  <HoverCardTrigger asChild>
+                    <Button
+                      onClick={() => handleGrantReadPermission(table.table_name)}
+                      className="bg-accent hover:bg-accent/80 text-white font-semibold rounded-md text-xs w-full"
+                    >
+                      Grant Read
+                    </Button>
+                  </HoverCardTrigger>
+                  <HoverCardContent side="top"  className="w-80">
+                    <p>Grants read permissions to all authenticated users through RLS</p>
+                  </HoverCardContent>
+                </HoverCard>
+                <HoverCard closeDelay={100} openDelay={200}>
+                  <HoverCardTrigger asChild>
+                    <Button
+                      onClick={() => handleGrantReadWritePermission(table.table_name)}
+                      className="bg-accent hover:bg-accent/80 text-white font-semibold rounded-md text-xs w-full"
+                    >
+                      Grant Read/Write
+                    </Button>
+                  </HoverCardTrigger>
+                  <HoverCardContent side="top"  className="w-80">
+                    <p>Grants read/write permissions to all authenticated users through RLS</p>
+                  </HoverCardContent>
+                </HoverCard>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <ScrollBar orientation="vertical" />
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
                 </AlertDescription>
               </Alert>
             ) : (

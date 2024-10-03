@@ -58,11 +58,11 @@ export default function LandingPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
           >
-            <div className="flex flex-col md:flex-row bg-background/90 border border-white/10 shadow-lg rounded-xl">
+            <div className="flex flex-col md:flex-row bg-background/90 border border-white/10 shadow-lg rounded-xl justify-evenly">
               {[
-                { icon: Database, title: "RLS", description: "Connect AWS, OpenAI, Github, and other platforms you use" },
-                { icon: Zap, title: "MFA", description: "Detect compliance issues automatically with Delve" },
-                { icon: Lock, title: "PITR", description: "Your data stays safe with our secure OAuth integration" }
+                { icon: Database, title: "RLS", description: "RLS keeps your data secure" },
+                { icon: Zap, title: "MFA", description: "MFA ensures your Users are authorized" },
+                { icon: Lock, title: "PITR", description: "PITR so you never lose data" }
               ].map((item, index) => (
                 <motion.div 
                   key={index} 
@@ -82,38 +82,7 @@ export default function LandingPage() {
           </motion.div>
         </section>
       </Card>
-      <Card className="mt-5 bg-white/10 rounded-xl border border-white/10 p-4 shadow-lg backdrop-blur-lg w-3/4">
-        <section className="md:py-2 lg:py-4  mx-auto sm:px-2 lg:px-4">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <div className="flex flex-col md:flex-row bg-background/90 border border-white/10 shadow-lg rounded-xl">
-              {[
-                { icon: Database, title: "RLS", description: "Connect AWS, OpenAI, Github, and other platforms you use" },
-                { icon: Zap, title: "MFA", description: "Detect compliance issues automatically with Delve" },
-                { icon: Lock, title: "PITR", description: "Your data stays safe with our secure OAuth integration" }
-              ].map((item, index) => (
-                <motion.div 
-                  key={index} 
-                  className="flex flex-col items-center space-y-4 text-center p-4 rounded-2xl m-4" 
-                  variants={itemVariants}
-                >
-                  <div className="p-3 rounded-full bg-accent/10">
-                    <item.icon className="h-8 w-8 text-accent" />
-                  </div>
-                  <h2 className="text-2xl font-bold">{item.title}</h2>
-                  <p className="text-muted-foreground">
-                    {item.description}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </section>
-      </Card>
+ 
     </div>
   )
 }
