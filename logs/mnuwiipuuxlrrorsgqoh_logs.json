@@ -1,0 +1,45 @@
+[
+  {
+    "userId": "9f0ac483-a6f1-4d28-aaa7-e5b5c53ac507",
+    "logs": [
+      {
+        "timestamp": "2024-10-03T03:58:00.889Z",
+        "action": "MFA Check",
+        "result": {
+          "user": "pyushsinha20@gmail.com",
+          "status": "MFA is not enabled"
+        },
+        "type": "MFA"
+      },
+      {
+        "timestamp": "2024-10-03T03:58:08.388Z",
+        "action": "PITR Check",
+        "result": {
+          "pitr_enabled": false,
+          "walg_enabled": false,
+          "region": "us-west-1",
+          "backups_count": 0
+        },
+        "type": "PITR"
+      },
+      {
+        "timestamp": "2024-10-03T03:58:11.214Z",
+        "action": "RLS Check",
+        "result": {
+          "table": "norls",
+          "status": "RLS was found to be disabled"
+        },
+        "type": "RLS"
+      },
+      {
+        "timestamp": "2024-10-03T03:58:11.214Z",
+        "action": "RLS Check",
+        "result": {
+          "table": "second",
+          "status": "RLS was found to be disabled"
+        },
+        "type": "RLS"
+      }
+    ]
+  }
+]

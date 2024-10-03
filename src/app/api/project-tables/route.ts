@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
     // Log the entire result for debugging
     console.log('Query result:', JSON.stringify(result, null, 2));
 
-    if (result.error) {
-      throw new Error(result.error.message || 'An error occurred while running the query');
+    if (result?.error) {
+      throw new Error(result.error || 'An error occurred while running the query');
     }
 
     return NextResponse.json({ result });
