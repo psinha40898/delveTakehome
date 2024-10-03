@@ -156,7 +156,7 @@ export function MFACheck({ projectRef }: { projectRef: string }) {
                 <CheckCircle className="h-4 w-4" />
                 <AlertTitle>MFA Enabled for All Users</AlertTitle>
                 <AlertDescription>
-                  All users have MFA (Multi-Factor Authentication) enabled. Great job!
+                  Could not find any sessions that did not use MFA. Great job!
                 </AlertDescription>
               </Alert>
             )}
