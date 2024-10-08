@@ -128,18 +128,31 @@ export async function fetchMFAStatus(projectRef: string) {
   try {
     const client = new SupabaseManagementAPI({ accessToken })
     const query = `
+      WITH RankedSessions AS (
+        SELECT 
+          s.id AS session_id,
+          s.user_id,
+          s.aal,
+          u.email AS user_email,
+          u.phone AS user_phone,
+          ROW_NUMBER() OVER (PARTITION BY s.user_id ORDER BY s.created_at DESC) AS rn
+        FROM 
+          auth.sessions s
+        JOIN 
+          auth.users u ON s.user_id = u.id
+        WHERE 
+          s.aal != 'aal2'
+      )
       SELECT 
-        s.id AS session_id,
-        s.user_id,
-        s.aal,
-        u.email AS user_email,
-        u.phone AS user_phone
+        session_id,
+        user_id,
+        aal,
+        user_email,
+        user_phone
       FROM 
-        auth.sessions s
-      JOIN 
-        auth.users u ON s.user_id = u.id
+        RankedSessions
       WHERE 
-        s.aal != 'aal2';
+        rn = 1;
     `
 
     const result = await client.runQuery(projectRef, query)
